@@ -85,17 +85,6 @@ def auth():
 # Emotion detection route
 @app.route('/', methods=['POST'])
 def index():
-    # token = request.headers['token']
-    # decoded_data = jwt.decode(jwt=token, key=secret_key, algorithms=["HS256"])
-    # email = decoded_data['email']
-    # expiration_time = decoded_data['exp']
-    # if (expiration_time < current_milli_time()):
-    #     print("token expired")
-    # cursor = connection.cursor(buffered=True)
-    # cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
-    # if cursor.rowcount == 0:
-    #     print("Unauthenticated User")
-    # else:
         if request.method == 'POST':
             if 'my-image-file' not in request.files:
                 raise BadRequestError("Invalid request")
@@ -115,8 +104,6 @@ def index():
 
 def predict_emotion(path):
     frame = cv2.imread(path, cv2.IMREAD_COLOR)
-    # if not ret:
-    #     break
     frame = cv2.resize(frame, (1280, 720))
 
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
