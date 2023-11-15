@@ -1,11 +1,31 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from uuid import uuid1
+import jwt
+from flask_cors import CORS, cross_origin
+import time
+from huggingface_hub.utils import BadRequestError
+
+
+def current_milli_time():
+    return round(time.time() * 1000)
+
+
+secret_key = "798a2278-7baa-11ee-b962-0242ac120002"
+
+import mysql.connector
+
+from flask import Flask, render_template, request, redirect, url_for, make_response
 import cv2
 import numpy as np
 from keras.models import model_from_json
+from google.oauth2 import id_token
+from google.auth.transport import requests
 from flask import send_from_directory
 
 app = Flask(__name__)
+
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 emotion_dict = {0: "Angry", 1: "Disgusted", 2: "Fearful", 3: "Happy", 4: "Neutral", 5: "Sad", 6: "Surprised"}
 
@@ -19,29 +39,78 @@ emotion_model = model_from_json(loaded_model_json)
 emotion_model.load_weights("models/emotion_model.h5")
 print("Loaded models from disk")
 
+# diskhog = cv2.HOGDescriptor()
+# hog.setSVMDetector(cv2.HOGDescriptor.getDefaultPeopleDetector())
+
 face_detector = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
+
+connection = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="hello@123",
+    database="face_detection"
+)
+
+
+@app.route('/auth', methods=['POST'])
+@cross_origin()
+def auth():
+    try:
+        cursor = connection.cursor(buffered=True)
+        idInfo = id_token.verify_oauth2_token(request.json['response']['credential'], requests.Request(),
+                                              "534042040906-qff5ftkdcklm1sfrs99ct4s794gkcvbv.apps.googleusercontent.com")
+        userid = str(uuid1())
+        email = idInfo['email']
+        name = idInfo['name']
+        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
+        if cursor.rowcount > 0:
+            print("user exists")
+        else:
+            sql = """INSERT INTO Users (user_id, email, name) VALUES (%s, %s, %s)"""
+            cursor.execute(sql, (userid, email, name))
+            connection.commit()
+        cursor.close()
+        encoded_token = jwt.encode(payload={"email": email, "exp": current_milli_time() + 1800000},
+                                   key=secret_key,
+                                   algorithm="HS256")
+        response = {"token": encoded_token}
+        return response
+    except ValueError:
+        pass
+    except Exception as e:
+        print(e)
+    # Invalid token
 
 
 # Emotion detection route
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['POST'])
 def index():
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            return redirect(request.url)
+    # token = request.headers['token']
+    # decoded_data = jwt.decode(jwt=token, key=secret_key, algorithms=["HS256"])
+    # email = decoded_data['email']
+    # expiration_time = decoded_data['exp']
+    # if (expiration_time < current_milli_time()):
+    #     print("token expired")
+    # cursor = connection.cursor(buffered=True)
+    # cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
+    # if cursor.rowcount == 0:
+    #     print("Unauthenticated User")
+    # else:
+        if request.method == 'POST':
+            if 'my-image-file' not in request.files:
+                raise BadRequestError("Invalid request")
 
-        file = request.files['file']
+            file = request.files['my-image-file']
 
-        if file.filename == '':
-            return redirect(request.url)
+            if file.filename == '':
+                return redirect(request.url)
 
-        if file:
-            image_path = os.path.join("static/uploads", file.filename)
-            file.save(image_path)
-            output_path = predict_emotion(image_path)
-
-            return render_template('index.html', image_path=output_path, emotion="Detected Success")
-
-    return render_template('index.html', image_path=None, emotion=None)
+            if file:
+                image_path = os.path.join("static/uploads", file.filename)
+                file.save(image_path)
+                output_path = predict_emotion(image_path)
+                response = {"url": "http://localhost:5000/" + output_path}
+                return response
 
 
 def predict_emotion(path):
@@ -66,7 +135,7 @@ def predict_emotion(path):
         maxindex = int(np.argmax(emotion_prediction))
         cv2.putText(frame, emotion_dict[maxindex], (x + 5, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2,
                     cv2.LINE_AA)
-    output_path = os.path.join('static/uploads', 'output.png')
+    output_path = os.path.join('static/uploads', str(uuid1()) + ".png")
     cv2.imwrite(output_path, frame)
 
     return output_path
