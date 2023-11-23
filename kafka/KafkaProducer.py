@@ -1,6 +1,7 @@
 import kafka
 import json
 
+
 def kafkaProducer():
     producer = kafka.KafkaProducer(bootstrap_servers='localhost:9092',
                                api_version=(0, 11, 5),
