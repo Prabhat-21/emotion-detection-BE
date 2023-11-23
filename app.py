@@ -154,14 +154,14 @@ def index():
             image_path = os.path.join("static/uploads", file.filename)
             file.save(image_path)
             output_path = predict_emotion(image_path)
-            # decoded_token = jwt.decode(request.headers["token"], options={"verify_signature": False})
-            # email = decoded_token["email"]
-            # user_name = get_data_from_database(email)[3]
-            # response = {"url": "http://localhost:5000/" + output_path}
-            # subject = "Emotion Detection Success:" + user_name
+            decoded_token = jwt.decode(request.headers["token"], options={"verify_signature": False})
+            email = decoded_token["email"]
+            user_name = get_data_from_database(email)[3]
+            response = {"url": "http://localhost:5000/" + output_path}
+            subject = "Emotion Detection Success:" + user_name
             body = "The emotion of your face has been determined successfully.Please find attached the link to detected emotion on image  " + "http://localhost:5000/" + output_path
-            # send_email(server_email, server_password, email, subject, body)
-            return output_path
+            send_email(server_email, server_password, email, subject, body)
+            return response
 
 
 # def predict_emotion(path):
@@ -213,13 +213,14 @@ def predict_emotion(path):
             prediction_label = labels[pred.argmax()]
             # print("Predicted Output:", prediction_label)
             # cv2.putText(im,prediction_label)
-            cv2.putText(frame, '% s' %(prediction_label), (p-10, q-10),cv2.FONT_HERSHEY_COMPLEX_SMALL,2, (0,0,255))
+            cv2.putText(frame, '% s' %(prediction_label), (p-10, q-10),cv2.FONT_HERSHEY_COMPLEX_SMALL,3, (0,0,255))
         # cv2.imshow("Output",frame)
         output_path = os.path.join('static/uploads', str(uuid1()) + ".png")
         cv2.imwrite(output_path, frame)
         cv2.waitKey(27)
-    except cv2.error:
-        pass
+        return output_path
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 
 if __name__ == '__main__':

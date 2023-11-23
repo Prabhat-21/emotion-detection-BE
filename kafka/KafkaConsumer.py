@@ -1,5 +1,5 @@
 from kafka import KafkaConsumer
-
+from app import predict_emotion
 def kafkaConsumer():
     bootstrap_servers = 'localhost:9092'
     topic_name = 'my-topic'
@@ -7,3 +7,8 @@ def kafkaConsumer():
     consumer.subscribe(['my-topic'])
     for message in consumer:
         print(message.value)
+        predict_emotion(message)
+
+kafkaConsumer()
+
+
