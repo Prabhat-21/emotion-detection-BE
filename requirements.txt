@@ -106,14 +106,6 @@ spacy-loggers==1.0.5
 sqlparse==0.4.4
 srsly==2.4.8
 sympy==1.12
-tensorboard==2.11.1
-tensorboard-data-server==0.6.1
-tensorboard-plugin-wit==1.8.0
-tensorboardX==2.6.2.2
-tensorflow==2.11.1
-tensorflow-estimator==2.11.0
-tensorflow-io-gcs-filesystem==0.34.0
-tensorflow-macos==2.11.0
 termcolor==1.1.0
 thinc==8.2.1
 threadpoolctl==3.2.0
